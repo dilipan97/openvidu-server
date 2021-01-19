@@ -1,0 +1,47 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+    multiline.pattern: '^\d*:\d*:\d*'
+    multiline.negate: true
+    multiline.match: after
+  - type: log 
+    paths:
+      - /opt/openvidu/kurento-logs/*.log
+    fields:
+      kurento-media-server: true
+      ip: ${MEDIA_NODE_IP}
+      cluster-id: ${CLUSTER_ID}
+    fields_under_root: true
+
+processors:
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+  - add_host_metadata:
+      netinfo.enabled: true
+
+  - decode_json_fields:
+      fields: ["message"]
+      target: "json"
+      overwrite_keys: true
+  - add_fields:
+      fields:
+        ip: ${MEDIA_NODE_IP}
+        cluster-id: ${CLUSTER_ID}
+
+output:
+  elasticsearch:
+    indices:
+      - index: "filebeat-kurento-%{+yyyy.MM.dd}"
+        when.or:
+          - equals:
+              kurento-media-server: true
+    pipelines:
+      - pipeline: kurento-pipeline
+        when.or:
+          - equals:
+              kurento-media-server: true
+
+logging.json: true
+logging.metrics.enabled: false
+setup.ilm.enabled: false
