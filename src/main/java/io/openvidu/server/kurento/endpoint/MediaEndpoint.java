@@ -63,7 +63,7 @@ import io.openvidu.server.kurento.core.KurentoParticipant;
 import org.kurento.module.rtsptortpendpoint.RtspToRtpEndpoint;
 import org.kurento.module.rtsptortspendpoint.RtspToRtspEndpoint;
 import org.kurento.module.filetortspendpoint.FileToRtspEndpoint;
-
+import org.kurento.module.rtmptortspendpoint.RtmpToRtspEndpoint;
 /**
  * {@link Endpoint} wrapper. Can be based on WebRtcEndpoint (that supports
  * buffering of {@link IceCandidate}s until the {@link WebRtcEndpoint} is
@@ -85,6 +85,7 @@ public abstract class MediaEndpoint {
 	private RtspToRtpEndpoint rtspToRtpEndpoint = null;
 	private RtspToRtspEndpoint rtspToRtspEndpoint = null;
 	private FileToRtspEndpoint fileToRtspEndpoint = null;
+	private RtmpToRtspEndpoint rtmpToRtspEndpoint = null;
 
 	private final int maxRecvKbps;
 	private final int minRecvKbps;
@@ -178,6 +179,8 @@ public abstract class MediaEndpoint {
 		return EndpointType.FILE_TO_RTSP_ENDPOINT.equals(this.endpointType);
 	}
 
+	public boolean isRtmpToRtspEndpoint() { return  EndpointType.RTMP_TO_RTSP_ENDPOINT.equals(this.endpointType);}
+
 	/**
 	 * @return the user session that created this endpoint
 	 */
@@ -233,6 +236,8 @@ public abstract class MediaEndpoint {
 	public FileToRtspEndpoint getFileToRtspEndpoint() {
 		return  fileToRtspEndpoint;
 	}
+
+	public RtmpToRtspEndpoint getRtmpToRtspEndpoint() { return rtmpToRtspEndpoint; }
 
 	/**
 	 * If this object doesn't have a {@link WebRtcEndpoint}, it is created in a
@@ -324,6 +329,29 @@ public abstract class MediaEndpoint {
 			public void onError(Throwable cause) throws Exception {
 				endpointLatch.countDown();
 				log.error("EP {}: Failed to create a new FileToRtspEndpoint", endpointName, cause);
+			}
+		});
+	}
+
+	public synchronized void createRtmpToRtspEndpoint(ServerProperties serverProperties, CountDownLatch endpointLatch) {
+
+		RtmpToRtspEndpoint.Builder builder = new RtmpToRtspEndpoint.Builder(pipeline,
+				serverProperties.getRtspUri(), serverProperties.getPort());
+
+		builder.buildAsync(new Continuation<RtmpToRtspEndpoint>() {
+
+			@Override
+			public void onSuccess(RtmpToRtspEndpoint result) throws Exception {
+				rtmpToRtspEndpoint = result;
+				log.trace("EP {}: Created a new RtmpToRtspEndpoint", endpointName);
+				endpointSubscription = registerElemErrListener(rtmpToRtspEndpoint);
+				endpointLatch.countDown();
+			}
+
+			@Override
+			public void onError(Throwable cause) throws Exception {
+				endpointLatch.countDown();
+				log.error("EP {}: Failed to create a new RtmpToRtspEndpoint", endpointName, cause);
 			}
 		});
 	}
@@ -583,7 +611,7 @@ public abstract class MediaEndpoint {
 			}
 			return webEndpoint.processOffer(offer);
 		} else if (this.isPlayerEndpoint() || this.isRtspToRtpEndpoint() || this.isRtspToRtspEndpoint()
-			|| this.isFileToRtspEndpoint()) {
+			|| this.isFileToRtspEndpoint() || this.isRtmpToRtspEndpoint()) {
 			return "";
 		} else {
 			if (endpoint == null) {
@@ -610,7 +638,7 @@ public abstract class MediaEndpoint {
 			}
 			return webEndpoint.processAnswer(answer);
 		} else if (this.isPlayerEndpoint()|| this.isRtspToRtpEndpoint() || this.isRtspToRtspEndpoint()
-		 	|| this.isFileToRtspEndpoint()) {
+		 	|| this.isFileToRtspEndpoint() || this.isRtmpToRtspEndpoint()) {
 			return "";
 		} else {
 			if (endpoint == null) {
@@ -701,7 +729,8 @@ public abstract class MediaEndpoint {
 		JsonObject json = new JsonObject();
 		json.addProperty("createdAt", this.createdAt);
 		json.addProperty("webrtcEndpointName", this.getEndpointName());
-		if (!this.isPlayerEndpoint() && !this.isRtspToRtpEndpoint() && !this.isRtspToRtspEndpoint() && !this.isFileToRtspEndpoint()) {
+		if (!this.isPlayerEndpoint() && !this.isRtspToRtpEndpoint() && !this.isRtspToRtspEndpoint() && !this.isFileToRtspEndpoint()
+			&& !this.isRtmpToRtspEndpoint()) {
 			try {
 				json.addProperty("remoteSdp", ((SdpEndpoint) this.getEndpoint()).getRemoteSessionDescriptor());
 			} catch (KurentoServerException e) {

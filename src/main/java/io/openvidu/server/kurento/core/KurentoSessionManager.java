@@ -1026,7 +1026,7 @@ public class KurentoSessionManager extends SessionManager {
 		URL url = null;
 		String protocol = null;
 		try {
-			Pattern pattern = Pattern.compile("^(file|rtsp)://");
+			Pattern pattern = Pattern.compile("^(file|rtsp|http)://");
 			Matcher matcher = pattern.matcher(kMediaOptions.rtspUri);
 			if (matcher.find()) {
 				protocol = matcher.group(0).replaceAll("://$", "");

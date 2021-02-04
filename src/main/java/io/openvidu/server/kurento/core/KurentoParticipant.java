@@ -142,6 +142,9 @@ public class KurentoParticipant extends Participant {
 			case "filetortsp":
 				publisher.createFileToRtspEndpoint(serverProperties, publisherLatch);
 				break;
+			case "rtmptortsp":
+				publisher.createRtmpToRtspEndpoint(serverProperties, publisherLatch);
+				break;
 			default:
 				throw new OpenViduException(Code.MEDIA_ENDPOINT_ERROR_CODE, "No such endpoint exists");
 		}
@@ -420,7 +423,8 @@ public class KurentoParticipant extends Participant {
 		}
 		if (publisher != null &&
 				(publisher.getEndpoint() != null || publisher.getRtspToRtpEndpoint() != null ||
-						publisher.getRtspToRtspEndpoint() != null || publisher.getFileToRtspEndpoint() != null)) {
+						publisher.getRtspToRtspEndpoint() != null || publisher.getFileToRtspEndpoint() != null ||
+						publisher.getRtmpToRtspEndpoint() != null)) {
 			releasePublisherEndpoint(reason, kmsDisconnectionTime);
 		}
 	}
@@ -468,7 +472,8 @@ public class KurentoParticipant extends Participant {
 
 	private void releasePublisherEndpoint(EndReason reason, Long kmsDisconnectionTime) {
 		if (publisher != null && (publisher.getEndpoint() != null || publisher.getRtspToRtpEndpoint() != null ||
-				publisher.getRtspToRtspEndpoint() != null || publisher.getFileToRtspEndpoint() != null)) {
+				publisher.getRtspToRtspEndpoint() != null || publisher.getFileToRtspEndpoint() != null ||
+				publisher.getRtmpToRtspEndpoint() != null )) {
 			final ReadWriteLock closingLock = publisher.closingLock;
 			try {
 				if (closingLock.writeLock().tryLock(15, TimeUnit.SECONDS)) {
@@ -520,6 +525,9 @@ public class KurentoParticipant extends Participant {
 			}
 			else if(publisher.getFileToRtspEndpoint() != null) {
 				mediaElement = publisher.getFileToRtspEndpoint();
+			}
+			else if(publisher.getRtmpToRtspEndpoint() != null) {
+				mediaElement = publisher.getRtmpToRtspEndpoint();
 			}
 			else {
 				mediaElement = publisher.getEndpoint();

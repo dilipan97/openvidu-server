@@ -432,6 +432,9 @@ public abstract class SessionManager {
 				case "filetortsp":
 					endpointType = EndpointType.FILE_TO_RTSP_ENDPOINT;
 					break;
+				case "rtmptortsp":
+					endpointType = EndpointType.RTMP_TO_RTSP_ENDPOINT;
+					break;
 				default:
 					throw new OpenViduException(Code.MEDIA_ENDPOINT_ERROR_CODE, sessionId);
 			}
@@ -451,7 +454,7 @@ public abstract class SessionManager {
 	 * <strong>Dev advice:</strong> Send notifications to all participants to inform
 	 * that their session has been forcibly closed.
 	 *
-	 * @see sessionManmager#closeSession(String)
+	 * @see # sessionManmager # closeSession(String)
 	 */
 	@PreDestroy
 	public void close() {

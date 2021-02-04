@@ -12,7 +12,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Maven: org.kurento.module:filetortspendpoint:1.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.kurento:kurento-jsonrpc-server:6.15.0" level="project" />
     <orderEntry type="library" name="Maven: org.kurento:kurento-commons:6.15.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:27.1-jre" level="project" />
@@ -137,6 +136,7 @@
     <orderEntry type="library" name="Maven: org.kurento.module:rtsptortpendpoint:1.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.kurento.module:rtsptortspendpoint:1.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.kurento.module:filetortspendpoint:1.0.0" level="project" />
+    <orderEntry type="library" name="Maven: org.kurento.module:rtmptortspendpoint:1.0.0" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.springframework.boot:spring-boot-starter-test:2.3.5.RELEASE" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.springframework.boot:spring-boot-test:2.3.5.RELEASE" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.springframework.boot:spring-boot-test-autoconfigure:2.3.5.RELEASE" level="project" />

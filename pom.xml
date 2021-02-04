@@ -342,7 +342,11 @@
 			<artifactId>filetortspendpoint</artifactId>
 			<version>1.0.0</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.kurento.module</groupId>
+			<artifactId>rtmptortspendpoint</artifactId>
+			<version>1.0.0</version>
+		</dependency>
 		<!-- Test dependencies -->
 
 		<dependency>
