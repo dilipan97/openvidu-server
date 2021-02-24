@@ -229,7 +229,7 @@ public class SessionRestController {
 		ConnectionProperties connectionProperties;
 		ServerProperties serverProperties;
 
-		if(params.containsKey("port")) {
+		if(params.containsKey("port") && params.get("port") != null) {
 			try {
 				serverProperties = getServerPropertiesFromParams(params).build();
 			} catch (Exception e) {
