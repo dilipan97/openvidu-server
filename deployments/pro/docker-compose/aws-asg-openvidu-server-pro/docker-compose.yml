@@ -11,7 +11,7 @@
 #
 #    This file will be overridden when update OpenVidu Platform
 #
-#    Openvidu Version: 2.16.0
+#    Openvidu Version: 2.17.0
 #
 #    Installation Mode: On Premises
 #
@@ -22,7 +22,7 @@ version: '3.1'
 services:
 
     openvidu-server:
-        image: openvidu/openvidu-server-pro:2.17.0-dev4
+        image: openvidu/openvidu-server-pro:2.17.0
         restart: on-failure
         network_mode: host
         entrypoint: ['/usr/local/bin/entrypoint.sh']
@@ -41,7 +41,7 @@ services:
             - KMS_URIS=[]
             - OPENVIDU_WEBHOOK=false
             - OPENVIDU_WEBHOOK_ENDPOINT=http://127.0.0.1:7777/webhook
-            - OPENVIDU_PRO_REPLICATION_MANAGER_WEBHOOK=https://127.0.0.1:4443/openvidu/replication-manager-webhook?
+            - OPENVIDU_PRO_REPLICATION_MANAGER_WEBHOOK=http://127.0.0.1:4443/openvidu/replication-manager-webhook?OPENVIDU_SECRET=${OPENVIDU_SECRET}
             - COTURN_REDIS_IP=127.0.0.1
             - COTURN_REDIS_PASSWORD=${OPENVIDU_SECRET}
             - COTURN_IP=${COTURN_IP:-auto-ipv4}
@@ -55,8 +55,8 @@ services:
                 max-size: "${DOCKER_LOGS_MAX_SIZE:-100M}"
 
     replication-manager:
-        image: openvidu/replication-manager:1.0.0-dev2
-        restart: on-failure
+        image: openvidu/replication-manager:1.0.0-dev5
+        restart: always
         network_mode: host
         environment:
             - SERVER_PORT=4443
@@ -74,7 +74,7 @@ services:
                 max-size: "${DOCKER_LOGS_MAX_SIZE:-100M}"
 
     redis:
-        image: openvidu/openvidu-redis:2.0.0-dev2
+        image: openvidu/openvidu-redis:2.0.0
         restart: always
         network_mode: host
         environment:
@@ -84,7 +84,7 @@ services:
                 max-size: "${DOCKER_LOGS_MAX_SIZE:-100M}"
 
     coturn:
-        image: openvidu/openvidu-coturn:3.0.0-dev2
+        image: openvidu/openvidu-coturn:3.0.0
         restart: on-failure
         network_mode: host
         environment:

@@ -1,0 +1,44 @@
+############## UPGRADING OPENVIDU SERVER ##################
+
+# clone latest openvidu server from github
+
+git clone https://github.com/OpenVidu/openvidu.git
+cd openvidu/openvidu-server
+git init
+git add .
+git commit -m "latest update"
+git remote add origin https://github.com/dilipan97/openvidu-server.git
+git checkout openvidu-server-2.17.0
+git push origin openvidu-server-2.17.0
+
+-> change directory to openvidu-server that need to be upgraded
+git pull origin latest-update --allow-unrelated-histories
+
+-> Resolve the merge conflicts and keep the below changes to new server
+
+# Changes made in the server
+--------------------------------
+FILENAME                   | LINE NUMBER
+-----------------------------------------------------------------------
+participant.java           | 327 
+SessionManager.java        | 65, 116, 182, 347, 449
+Token.java                 | 32, 45, 65, 93, 101, 113, 132, 151, 210, 249
+KurentoParticipant.java    | 30, 123, 427, 494, 545
+KurentoSessionManager.java | 34, 514, 1074, 1136
+EndpointType.java          | 5
+MediaEndpoint.java         | 31, 68, 96, 186, 251, 299, 643, 675, 779, 
+SessionRestController.java | 29, 236, 719, 756, 981, 1035
+
+
+# Compile the new server
+mvn clean compile package
+
+# Run the server
+mvn -DDOMAIN_OR_PUBLIC_IP=localhost -DHTTPS_PORT=4443 -DOPENVIDU_SECRET=MY_SECRET exec:java
+
+# Do this before deploying the server
+-> JAR file will be generated inside ./target after compiling the server
+-> copy it to folder openvidu/openvidu-server/docker/openvidu-server
+-> Rename the JAR to just 'openvidu-server'
+-> Push the changes to github
+

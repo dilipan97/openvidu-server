@@ -28,6 +28,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/*
+*  Added - dilipan@datakaveri.org
+*  Import server properties for RTSP server
+*  Import Statement
+*/
 import io.openvidu.server.utils.ServerProperties;
 import org.kurento.client.BaseRtpEndpoint;
 import org.kurento.client.Continuation;
@@ -60,6 +65,11 @@ import io.openvidu.server.core.Participant;
 import io.openvidu.server.kurento.core.KurentoMediaOptions;
 import io.openvidu.server.kurento.core.KurentoParticipant;
 
+/*
+*  Added - dilipan@datakaveri.org
+*  Import all endpoints for RTSP server
+*  Import Statement
+*/
 import org.kurento.module.rtsptortpendpoint.RtspToRtpEndpoint;
 import org.kurento.module.rtsptortspendpoint.RtspToRtspEndpoint;
 import org.kurento.module.filetortspendpoint.FileToRtspEndpoint;
@@ -82,6 +92,12 @@ public abstract class MediaEndpoint {
 	private WebRtcEndpoint webEndpoint = null;
 	private RtpEndpoint endpoint = null;
 	private PlayerEndpoint playerEndpoint = null;
+	
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  All endpoints set to null
+	*  Initialize variables
+	*/
 	private RtspToRtpEndpoint rtspToRtpEndpoint = null;
 	private RtspToRtspEndpoint rtspToRtspEndpoint = null;
 	private FileToRtspEndpoint fileToRtspEndpoint = null;
@@ -117,7 +133,7 @@ public abstract class MediaEndpoint {
 	/**
 	 * Constructor to set the owner, the endpoint's name and the media pipeline.
 	 *
-	 * @param endpointType
+	 * @param web
 	 * @param owner
 	 * @param endpointName
 	 * @param pipeline
@@ -167,6 +183,11 @@ public abstract class MediaEndpoint {
 		return EndpointType.PLAYER_ENDPOINT.equals(this.endpointType);
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Functions (4) to check the corresponding endpoints
+	*  Function
+	*/
 	public boolean isRtspToRtpEndpoint() {
 		return EndpointType.RTSP_TO_RTP_ENDPOINT.equals(this.endpointType);
 	}
@@ -179,7 +200,9 @@ public abstract class MediaEndpoint {
 		return EndpointType.FILE_TO_RTSP_ENDPOINT.equals(this.endpointType);
 	}
 
-	public boolean isRtmpToRtspEndpoint() { return  EndpointType.RTMP_TO_RTSP_ENDPOINT.equals(this.endpointType);}
+	public boolean isRtmpToRtspEndpoint() { 
+		return  EndpointType.RTMP_TO_RTSP_ENDPOINT.equals(this.endpointType);
+	}
 
 	/**
 	 * @return the user session that created this endpoint
@@ -225,6 +248,12 @@ public abstract class MediaEndpoint {
 		return playerEndpoint;
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Functions (4) to return requested endpoints
+	*  Function
+	*/
+
 	public RtspToRtpEndpoint getRtspToRtpEndpoint() {
 		return rtspToRtpEndpoint;
 	}
@@ -237,7 +266,9 @@ public abstract class MediaEndpoint {
 		return  fileToRtspEndpoint;
 	}
 
-	public RtmpToRtspEndpoint getRtmpToRtspEndpoint() { return rtmpToRtspEndpoint; }
+	public RtmpToRtspEndpoint getRtmpToRtspEndpoint() { 
+		return rtmpToRtspEndpoint; 
+	}
 
 	/**
 	 * If this object doesn't have a {@link WebRtcEndpoint}, it is created in a
@@ -265,6 +296,11 @@ public abstract class MediaEndpoint {
 		return old;
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Functions (4) to create RTSP server endpoints
+	*  Function
+	*/
 	public synchronized void createRtspToRtpEndpoint(ServerProperties serverProperties, CountDownLatch endpointLatch) {
 		RtspToRtpEndpoint.Builder builder = new RtspToRtpEndpoint.Builder(pipeline,
 				serverProperties.getRtspUri(), serverProperties.getPort());
@@ -604,6 +640,11 @@ public abstract class MediaEndpoint {
 	 * @return the Sdp answer
 	 */
 	protected String processOffer(String offer) throws OpenViduException {
+		/*
+		*  Modified - dilipan@datakaveri.org
+		*  Check any of the RTSP endpoints are present
+		*  If Statement
+		*/
 		if (this.isWeb()) {
 			if (webEndpoint == null) {
 				throw new OpenViduException(Code.MEDIA_WEBRTC_ENDPOINT_ERROR_CODE,
@@ -631,6 +672,11 @@ public abstract class MediaEndpoint {
 	 * @return the updated Sdp offer, based on the received answer
 	 */
 	protected String processAnswer(String answer) throws OpenViduException {
+		/*
+		*  Modified - dilipan@datakaveri.org
+		*  Check any of the RTSP endpoints are present
+		*  If Statement
+		*/
 		if (this.isWeb()) {
 			if (webEndpoint == null) {
 				throw new OpenViduException(Code.MEDIA_WEBRTC_ENDPOINT_ERROR_CODE,
@@ -656,7 +702,7 @@ public abstract class MediaEndpoint {
 	 * the {@link Participant}.
 	 *
 	 * @see WebRtcEndpoint#addOnIceCandidateListener(org.kurento.client.EventListener)
-	 * @see Participant# sendIceCandidate(String, IceCandidate)
+	 * @see Participant#sendIceCandidate(String, IceCandidate)
 	 * @throws OpenViduException if thrown, unable to register the listener
 	 */
 	protected void registerOnIceCandidateEventListener(String senderPublicId) throws OpenViduException {
@@ -729,6 +775,12 @@ public abstract class MediaEndpoint {
 		JsonObject json = new JsonObject();
 		json.addProperty("createdAt", this.createdAt);
 		json.addProperty("webrtcEndpointName", this.getEndpointName());
+
+		/*
+		*  Modified - dilipan@datakaveri.org
+		*  Check any of the RTSP endpoints are not present
+		*  If Statement
+		*/
 		if (!this.isPlayerEndpoint() && !this.isRtspToRtpEndpoint() && !this.isRtspToRtspEndpoint() && !this.isFileToRtspEndpoint()
 			&& !this.isRtmpToRtspEndpoint()) {
 			try {
@@ -769,6 +821,7 @@ public abstract class MediaEndpoint {
 			j.remove("sessionId");
 			j.remove("user");
 			j.remove("connection");
+			j.remove("connectionId");
 			j.remove("endpoint");
 			j.remove("timestampMillis");
 			jsonArray.add(j);

@@ -92,7 +92,8 @@ public class SingleStreamRecordingService extends RecordingService {
 				properties.hasVideo() ? (properties.hasAudio() ? "video+audio" : "video-only") : "audioOnly",
 				recordingId, session.getSessionId());
 
-		Recording recording = new Recording(session.getSessionId(), recordingId, properties);
+		Recording recording = new Recording(session.getSessionId(), session.getUniqueSessionId(), recordingId,
+				properties);
 		this.recordingManager.recordingToStarting(recording);
 
 		activeRecorders.put(recording.getId(), new ConcurrentHashMap<>());
@@ -120,7 +121,7 @@ public class SingleStreamRecordingService extends RecordingService {
 		}
 
 		try {
-			if (!recordingStartedCountdown.await(5, TimeUnit.SECONDS)) {
+			if (!recordingStartedCountdown.await(10, TimeUnit.SECONDS)) {
 				log.error("Error waiting for some recorder endpoint to start in session {}", session.getSessionId());
 				throw this.failStartRecording(session, recording, "Couldn't initialize some RecorderEndpoint");
 			}
@@ -391,14 +392,14 @@ public class SingleStreamRecordingService extends RecordingService {
 			MediaProfileSpecType profile) {
 		switch (profile) {
 		case WEBM:
-			publisherEndpoint.connect(recorder, MediaType.AUDIO);
-			publisherEndpoint.connect(recorder, MediaType.VIDEO);
+			publisherEndpoint.connect(recorder, MediaType.AUDIO, false);
+			publisherEndpoint.connect(recorder, MediaType.VIDEO, false);
 			break;
 		case WEBM_AUDIO_ONLY:
-			publisherEndpoint.connect(recorder, MediaType.AUDIO);
+			publisherEndpoint.connect(recorder, MediaType.AUDIO, false);
 			break;
 		case WEBM_VIDEO_ONLY:
-			publisherEndpoint.connect(recorder, MediaType.VIDEO);
+			publisherEndpoint.connect(recorder, MediaType.VIDEO, false);
 			break;
 		default:
 			throw new UnsupportedOperationException("Unsupported profile when single stream recording: " + profile);

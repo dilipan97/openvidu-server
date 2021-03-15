@@ -507,15 +507,18 @@ Resources:
                 sed -i "s/ELASTICSEARCH_PASSWORD=/ELASTICSEARCH_PASSWORD=${ElasticsearchPassword}/" $WORKINGDIR/.env
 
                 # Replace vars AWS
+                INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
                 sed -i "s/#AWS_DEFAULT_REGION=/AWS_DEFAULT_REGION=${AWS::Region}/" $WORKINGDIR/.env
                 sed -i "s/#AWS_IMAGE_ID=/AWS_IMAGE_ID=${kmsAmi}/" $WORKINGDIR/.env
                 sed -i "s/#AWS_INSTANCE_TYPE=/AWS_INSTANCE_TYPE=${AwsInstanceTypeKMS}/" $WORKINGDIR/.env
+                sed -i "s/#AWS_INSTANCE_ID=/AWS_INSTANCE_ID=$INSTANCE_ID/" $WORKINGDIR/.env
                 sed -i "s/#AWS_KEY_NAME=/AWS_KEY_NAME=${KeyName}/" $WORKINGDIR/.env
                 sed -i "s/#AWS_SUBNET_ID=/AWS_SUBNET_ID=${OpenViduSubnet}/" $WORKINGDIR/.env
                 sed -i "s/#AWS_STACK_ID=/AWS_STACK_ID=$(echo ${AWS::StackId} | sed 's#/#\\/#g')/" $WORKINGDIR/.env
                 sed -i "s/#AWS_STACK_NAME=/AWS_STACK_NAME=${AWS::StackName}/" $WORKINGDIR/.env
                 sed -i "s/#AWS_CLI_DOCKER_TAG=/AWS_CLI_DOCKER_TAG=AWS_DOCKER_TAG/" $WORKINGDIR/.env
                 sed -i "s/#AWS_VOLUME_SIZE=/AWS_VOLUME_SIZE=50/" $WORKINGDIR/.env
+                sed -i "s/#OPENVIDU_PRO_AWS_REGION=/OPENVIDU_PRO_AWS_REGION=${AWS::Region}/" $WORKINGDIR/.env
 
                 # Get security group id of kms and use it as env variable
                 SECGRPIDKMS=$(/usr/local/bin/getSecurityGroupKms.sh)

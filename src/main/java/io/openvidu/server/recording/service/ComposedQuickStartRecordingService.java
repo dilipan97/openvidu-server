@@ -79,7 +79,7 @@ public class ComposedQuickStartRecordingService extends ComposedRecordingService
 		envs.add("VIDEO_ID=" + recording.getId());
 		envs.add("VIDEO_NAME=" + properties.name());
 		envs.add("VIDEO_FORMAT=mp4");
-		envs.add("RECORDING_JSON='" + recording.toJson().toString() + "'");
+		envs.add("RECORDING_JSON='" + recording.toJson(true).toString() + "'");
 
 		String containerId = this.sessionsContainers.get(session.getSessionId());
 		try {
@@ -209,7 +209,7 @@ public class ComposedQuickStartRecordingService extends ComposedRecordingService
 	private String runContainer(Session session, RecordingProperties properties) throws Exception {
 		log.info("Starting COMPOSED_QUICK_START container for session id: {}", session.getSessionId());
 
-		Recording recording = new Recording(session.getSessionId(), null, properties);
+		Recording recording = new Recording(session.getSessionId(), session.getUniqueSessionId(), null, properties);
 		String layoutUrl = this.getLayoutUrl(recording);
 
 		List<String> envs = new ArrayList<>();

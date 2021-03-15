@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import io.openvidu.server.utils.*;
 import org.kurento.jsonrpc.message.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +56,18 @@ import io.openvidu.server.config.OpenviduConfig;
 import io.openvidu.server.coturn.CoturnCredentialsService;
 import io.openvidu.server.kurento.endpoint.EndpointType;
 import io.openvidu.server.recording.service.RecordingManager;
+import io.openvidu.server.utils.FormatChecker;
+import io.openvidu.server.utils.GeoLocation;
+import io.openvidu.server.utils.GeoLocationByIp;
+import io.openvidu.server.utils.QuarantineKiller;
+import io.openvidu.server.utils.UpdatableTimerTask;
+
+/*
+*  Added - dilipan@datakaveri.org
+*  Imports all the RTSP server functionality from server properties
+*  Import
+*/
+import io.openvidu.server.utils.ServerProperties;
 
 public abstract class SessionManager {
 
@@ -102,6 +113,11 @@ public abstract class SessionManager {
 
 	public abstract void publishVideo(Participant participant, MediaOptions mediaOptions, Integer transactionId);
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Create RTSP server and publish to participant
+	*  Function declaration
+	*/
 	public abstract void publishServerVideo(Participant participant, ServerProperties serverProperties, Integer transactionId);
 
 	public abstract void unpublishVideo(Participant participant, Participant moderator, Integer transactionId,
@@ -111,10 +127,11 @@ public abstract class SessionManager {
 
 	public abstract void unsubscribe(Participant participant, String senderName, Integer transactionId);
 
-	public void sendMessage(String message, String sessionId) {
+	public void sendMessage(String message, Session session) {
 		try {
 			JsonObject messageJson = JsonParser.parseString(message).getAsJsonObject();
-			sessionEventsHandler.onSendMessage(null, messageJson, getParticipants(sessionId), sessionId, null, null);
+			sessionEventsHandler.onSendMessage(null, messageJson, getParticipants(session.getSessionId()),
+					session.getSessionId(), session.getUniqueSessionId(), null, null);
 		} catch (JsonSyntaxException | IllegalStateException e) {
 			throw new OpenViduException(Code.SIGNAL_FORMAT_INVALID_ERROR_CODE,
 					"Provided signal object '" + message + "' has not a valid JSON format");
@@ -125,7 +142,7 @@ public abstract class SessionManager {
 		try {
 			JsonObject messageJson = JsonParser.parseString(message).getAsJsonObject();
 			sessionEventsHandler.onSendMessage(participant, messageJson, getParticipants(participant.getSessionId()),
-					participant.getSessionId(), transactionId, null);
+					participant.getSessionId(), participant.getUniqueSessionId(), transactionId, null);
 		} catch (JsonSyntaxException | IllegalStateException e) {
 			throw new OpenViduException(Code.SIGNAL_FORMAT_INVALID_ERROR_CODE,
 					"Provided signal object '" + message + "' has not a valid JSON format");
@@ -162,6 +179,11 @@ public abstract class SessionManager {
 	public abstract Participant publishIpcam(Session session, MediaOptions mediaOptions,
 			ConnectionProperties connectionProperties) throws Exception;
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Create token, participant for the connection and calls publishServerVideo function
+	*  Function declaration
+	*/
 	public abstract Participant publishServer(Session session, ServerProperties serverProperties)
 			throws Exception;
 
@@ -311,7 +333,6 @@ public abstract class SessionManager {
 		Token tokenObj = tokenGenerator.generateToken(session.getSessionId(), serverMetadata, record, role,
 				kurentoOptions);
 		session.storeToken(tokenObj);
-		session.showTokens("Token created");
 		return tokenObj;
 	}
 
@@ -320,15 +341,18 @@ public abstract class SessionManager {
 		Token tokenObj = new Token(token, session.getSessionId(), connectionProperties,
 				this.openviduConfig.isTurnadminAvailable() ? this.coturnCredentialsService.createUser() : null);
 		session.storeToken(tokenObj);
-		session.showTokens("Token created for insecure user");
 		return tokenObj;
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Create new Token for RTSP server user
+	*  Function
+	*/
 	public Token newTokenForInsecureServer(Session session, String token, ServerProperties serverProperties)
 			throws Exception {
 		Token tokenObj = new Token(token, session.getSessionId(), serverProperties);
 		session.storeToken(tokenObj);
-		session.showTokens("Token created for insecure user");
 		return tokenObj;
 	}
 
@@ -369,13 +393,15 @@ public abstract class SessionManager {
 		this.insecureUsers.put(participantPrivateId, true);
 	}
 
-	public Participant newParticipant(String sessionId, String participantPrivatetId, Token token,
-			String clientMetadata, GeoLocation location, String platform, String finalUserId) {
+	public Participant newParticipant(Session session, String participantPrivateId, Token token, String clientMetadata,
+			GeoLocation location, String platform, String finalUserId) {
 
+		String sessionId = session.getSessionId();
 		if (this.sessionidParticipantpublicidParticipant.get(sessionId) != null) {
 
-			Participant p = new Participant(finalUserId, participantPrivatetId, token.getConnectionId(), sessionId,
-					token, clientMetadata, location, platform, EndpointType.WEBRTC_ENDPOINT, null);
+			Participant p = new Participant(finalUserId, participantPrivateId, token.getConnectionId(), sessionId,
+					session.getUniqueSessionId(), token, clientMetadata, location, platform,
+					EndpointType.WEBRTC_ENDPOINT, null);
 
 			this.sessionidParticipantpublicidParticipant.get(sessionId).put(p.getParticipantPublicId(), p);
 
@@ -392,11 +418,13 @@ public abstract class SessionManager {
 		}
 	}
 
-	public Participant newRecorderParticipant(String sessionId, String participantPrivatetId, Token token,
+	public Participant newRecorderParticipant(Session session, String participantPrivateId, Token token,
 			String clientMetadata) {
+		String sessionId = session.getSessionId();
 		if (this.sessionidParticipantpublicidParticipant.get(sessionId) != null) {
-			Participant p = new Participant(null, participantPrivatetId, ProtocolElements.RECORDER_PARTICIPANT_PUBLICID,
-					sessionId, token, clientMetadata, null, null, EndpointType.WEBRTC_ENDPOINT, null);
+			Participant p = new Participant(null, participantPrivateId, ProtocolElements.RECORDER_PARTICIPANT_PUBLICID,
+					sessionId, session.getUniqueSessionId(), token, clientMetadata, null, null,
+					EndpointType.WEBRTC_ENDPOINT, null);
 			this.sessionidParticipantpublicidParticipant.get(sessionId)
 					.put(ProtocolElements.RECORDER_PARTICIPANT_PUBLICID, p);
 			return p;
@@ -405,11 +433,12 @@ public abstract class SessionManager {
 		}
 	}
 
-	public Participant newIpcamParticipant(String sessionId, String ipcamId, Token token, GeoLocation location,
+	public Participant newIpcamParticipant(Session session, String ipcamId, Token token, GeoLocation location,
 			String platform) {
+		String sessionId = session.getSessionId();
 		if (this.sessionidParticipantpublicidParticipant.get(sessionId) != null) {
-			Participant p = new Participant(ipcamId, ipcamId, ipcamId, sessionId, token, null, location, platform,
-					EndpointType.PLAYER_ENDPOINT, null);
+			Participant p = new Participant(ipcamId, ipcamId, ipcamId, sessionId, session.getUniqueSessionId(), token,
+					null, location, platform, EndpointType.PLAYER_ENDPOINT, null);
 			this.sessionidParticipantpublicidParticipant.get(sessionId).put(ipcamId, p);
 			return p;
 		} else {
@@ -417,8 +446,14 @@ public abstract class SessionManager {
 		}
 	}
 
-	public Participant newServerParticipant(String sessionId, String ipcamId, Token token, GeoLocation location,
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Create new participant for RTSP server
+	*  Function
+	*/
+	public Participant newServerParticipant(Session session, String ipcamId, Token token, GeoLocation location,
 										   String platform) {
+		String sessionId = session.getSessionId();
 		if (this.sessionidParticipantpublicidParticipant.get(sessionId) != null) {
 
 			EndpointType endpointType;
@@ -438,8 +473,8 @@ public abstract class SessionManager {
 				default:
 					throw new OpenViduException(Code.MEDIA_ENDPOINT_ERROR_CODE, sessionId);
 			}
-			Participant p = new Participant(ipcamId, ipcamId, ipcamId, sessionId, token, null, location, platform,
-					endpointType, null);
+			Participant p = new Participant(ipcamId, ipcamId, ipcamId, sessionId, session.getUniqueSessionId(), token,
+					null, location, platform, endpointType, null);
 			this.sessionidParticipantpublicidParticipant.get(sessionId).put(ipcamId, p);
 			return p;
 		} else {
@@ -454,7 +489,7 @@ public abstract class SessionManager {
 	 * <strong>Dev advice:</strong> Send notifications to all participants to inform
 	 * that their session has been forcibly closed.
 	 *
-	 * @see # sessionManmager # closeSession(String)
+	 * @see SessionManmager#closeSession(String)
 	 */
 	@PreDestroy
 	public void close() {

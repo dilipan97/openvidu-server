@@ -181,7 +181,7 @@ public class RpcHandler extends DefaultJsonRpcHandler<JsonObject> {
 		String token = getStringParam(request, ProtocolElements.JOINROOM_TOKEN_PARAM);
 		String secret = getStringParam(request, ProtocolElements.JOINROOM_SECRET_PARAM);
 		String platform = getStringParam(request, ProtocolElements.JOINROOM_PLATFORM_PARAM);
-		String participantPrivatetId = rpcConnection.getParticipantPrivateId();
+		String participantPrivateId = rpcConnection.getParticipantPrivateId();
 
 		final io.openvidu.server.core.Session session = sessionManager.getSessionWithNotActive(sessionId);
 		if (session == null) {
@@ -245,7 +245,7 @@ public class RpcHandler extends DefaultJsonRpcHandler<JsonObject> {
 		boolean generateRecorderParticipant = false;
 
 		if (openviduConfig.isOpenViduSecret(secret)) {
-			sessionManager.newInsecureParticipant(participantPrivatetId);
+			sessionManager.newInsecureParticipant(participantPrivateId);
 			token = IdentifierPrefixes.TOKEN_ID + RandomStringUtils.randomAlphabetic(1).toUpperCase()
 					+ RandomStringUtils.randomAlphanumeric(15);
 			try {
@@ -262,8 +262,6 @@ public class RpcHandler extends DefaultJsonRpcHandler<JsonObject> {
 		Token tokenObj = session.consumeToken(token);
 		if (tokenObj != null) {
 
-			session.showTokens("Token consumed");
-
 			String clientMetadata = getStringParam(request, ProtocolElements.JOINROOM_METADATA_PARAM);
 			if (sessionManager.formatChecker.isServerMetadataFormatCorrect(clientMetadata)) {
 
@@ -276,12 +274,15 @@ public class RpcHandler extends DefaultJsonRpcHandler<JsonObject> {
 						}
 						Participant participant;
 						if (generateRecorderParticipant) {
-							participant = sessionManager.newRecorderParticipant(sessionId, participantPrivatetId,
-									tokenObj, clientMetadata);
+							participant = sessionManager.newRecorderParticipant(session, participantPrivateId, tokenObj,
+									clientMetadata);
 						} else {
-							participant = sessionManager.newParticipant(sessionId, participantPrivatetId, tokenObj,
+							participant = sessionManager.newParticipant(session, participantPrivateId, tokenObj,
 									clientMetadata, location, platform,
 									httpSession.getId().substring(0, Math.min(16, httpSession.getId().length())));
+							log.info("New Connection {} in Session {} with IP {} and platform {}",
+									participant.getParticipantPublicId(), sessionId, remoteAddress.getHostAddress(),
+									participant.getPlatform());
 						}
 
 						rpcConnection.setSessionId(sessionId);
@@ -293,7 +294,7 @@ public class RpcHandler extends DefaultJsonRpcHandler<JsonObject> {
 				} else {
 					log.error(
 							"ERROR: The session {} is in the process of closing while participant {} (privateId) was joining",
-							sessionId, participantPrivatetId);
+							sessionId, participantPrivateId);
 					throw new OpenViduException(Code.ROOM_CLOSED_ERROR_CODE,
 							"Unable to join the session. Session " + sessionId + " was in the process of closing");
 				}

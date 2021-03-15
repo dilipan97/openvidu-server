@@ -31,6 +31,7 @@ public class Recording {
 
 	private String id;
 	private String sessionId;
+	private String uniqueSessionId;
 	private long createdAt; // milliseconds (UNIX Epoch time)
 	private long size = 0; // bytes
 	private double duration = 0; // seconds
@@ -42,8 +43,9 @@ public class Recording {
 
 	public AtomicBoolean recordingNotificationSent = new AtomicBoolean(false);
 
-	public Recording(String sessionId, String id, RecordingProperties recordingProperties) {
+	public Recording(String sessionId, String uniqueSessionId, String id, RecordingProperties recordingProperties) {
 		this.sessionId = sessionId;
+		this.uniqueSessionId = uniqueSessionId;
 		this.createdAt = System.currentTimeMillis();
 		this.id = id;
 		this.status = io.openvidu.java.client.Recording.Status.started;
@@ -56,6 +58,9 @@ public class Recording {
 	public Recording(JsonObject json) {
 		this.id = json.get("id").getAsString();
 		this.sessionId = json.get("sessionId").getAsString();
+		if (json.has("uniqueSessionId")) {
+			this.uniqueSessionId = json.get("uniqueSessionId").getAsString();
+		}
 		this.createdAt = json.get("createdAt").getAsLong();
 		this.size = json.get("size").getAsLong();
 		try {
@@ -128,8 +133,8 @@ public class Recording {
 		return sessionId;
 	}
 
-	public void setSessionId(String sessionId) {
-		this.sessionId = sessionId;
+	public String getUniqueSessionId() {
+		return uniqueSessionId;
 	}
 
 	public long getCreatedAt() {
@@ -188,7 +193,7 @@ public class Recording {
 		this.hasVideo = hasVideo;
 	}
 
-	public JsonObject toJson() {
+	public JsonObject toJson(boolean withUniqueSessionId) {
 		JsonObject json = new JsonObject();
 		json.addProperty("id", this.id);
 		json.addProperty("object", "recording");
@@ -202,6 +207,12 @@ public class Recording {
 			}
 		}
 		json.addProperty("sessionId", this.sessionId);
+		if (withUniqueSessionId && this.uniqueSessionId != null) {
+			json.addProperty("uniqueSessionId", this.uniqueSessionId);
+		}
+		if (this.recordingProperties.mediaNode() != null) {
+			json.addProperty("mediaNode", this.recordingProperties.mediaNode());
+		}
 		json.addProperty("createdAt", this.createdAt);
 		json.addProperty("size", this.size);
 		json.addProperty("duration", this.duration);

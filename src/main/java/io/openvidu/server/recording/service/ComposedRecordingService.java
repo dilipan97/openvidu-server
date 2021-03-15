@@ -84,7 +84,8 @@ public class ComposedRecordingService extends RecordingService {
 			throws OpenViduException {
 
 		// Instantiate and store recording object
-		Recording recording = new Recording(session.getSessionId(), recordingId, properties);
+		Recording recording = new Recording(session.getSessionId(), session.getUniqueSessionId(), recordingId,
+				properties);
 		this.recordingManager.recordingToStarting(recording);
 
 		if (properties.hasVideo()) {
@@ -156,9 +157,9 @@ public class ComposedRecordingService extends RecordingService {
 		envs.add("VIDEO_ID=" + recording.getId());
 		envs.add("VIDEO_NAME=" + properties.name());
 		envs.add("VIDEO_FORMAT=mp4");
-		envs.add("RECORDING_JSON=" + recording.toJson().toString());
+		envs.add("RECORDING_JSON=" + recording.toJson(true).toString());
 
-		log.info(recording.toJson().toString());
+		log.info(recording.toJson(true).toString());
 		log.info("Recorder connecting to url {}", layoutUrl);
 
 		String containerId;

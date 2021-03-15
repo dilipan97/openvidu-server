@@ -60,8 +60,6 @@ public abstract class KmsManager {
 	public static final Lock selectAndRemoveKmsLock = new ReentrantLock(true);
 	public static final int MAX_SECONDS_LOCK_WAIT = 15;
 
-	private UpdatableTimerTask kurentoReconnectTimer;
-
 	public class KmsLoad implements Comparable<KmsLoad> {
 
 		private Kms kms;
@@ -200,28 +198,42 @@ public abstract class KmsManager {
 							kms.getUri(), kms.getKurentoClient().toString());
 				}
 
-				final int loops = 6;
+				// 6 attempts, 2 times per second (3 seconds total)
+				final int maxReconnectTimeMillis = 3000;
+				final int intervalWaitMs = 500;
+				final int loops = maxReconnectTimeMillis / intervalWaitMs;
 				final AtomicInteger iteration = new AtomicInteger(loops);
-				final long intervalWaitMs = 500L;
 
-				kurentoReconnectTimer = new UpdatableTimerTask(() -> {
+				final long initTime = System.currentTimeMillis();
+
+				final UpdatableTimerTask kurentoClientReconnectTimer = new UpdatableTimerTask(() -> {
 					if (iteration.decrementAndGet() < 0) {
 
-						log.error("KurentoClient [{}] could not reconnect to KMS with uri {} in {} seconds",
-								kms.getKurentoClient().toString(), kms.getUri(), (intervalWaitMs * 6 / 1000));
-						kurentoReconnectTimer.cancelTimer();
+						log.error(
+								"KurentoClient [{}] could not reconnect to KMS with uri {} in {} seconds. Media Node crashed",
+								kms.getKurentoClient().toString(), kms.getUri(), (intervalWaitMs * loops / 1000));
+						kms.getKurentoClientReconnectTimer().cancelTimer();
+
+						final long timeOfKurentoDisconnection = kms.getTimeOfKurentoClientDisconnection();
+						sessionEventsHandler.onMediaNodeCrashed(kms, timeOfKurentoDisconnection);
+
 						log.warn("Closing {} sessions hosted by KMS with uri {}: {}", kms.getKurentoSessions().size(),
 								kms.getUri(), kms.getKurentoSessions().stream().map(s -> s.getSessionId())
 										.collect(Collectors.joining(",", "[", "]")));
 
-						final long timeOfKurentoDisconnection = kms.getTimeOfKurentoClientDisconnection();
-						sessionEventsHandler.onMediaServerCrashed(kms, timeOfKurentoDisconnection);
-
 						kms.getKurentoSessions().forEach(kSession -> {
-							sessionManager.closeSession(kSession.getSessionId(), EndReason.mediaServerCrashed);
+							sessionManager.closeSession(kSession.getSessionId(), EndReason.nodeCrashed);
 						});
 
 					} else {
+
+						// KurentoClient connection timeout may exceed the limit.
+						// This happens if not only kms process has crashed, but the instance itself is
+						// not reachable
+						if ((System.currentTimeMillis() - initTime) > maxReconnectTimeMillis) {
+							iteration.set(0);
+							return;
+						}
 
 						try {
 							kms.getKurentoClient().getServerManager().getInfo();
@@ -234,7 +246,7 @@ public abstract class KmsManager {
 
 						log.info("According to Timer KMS with uri {} and KurentoClient [{}] is now reconnected",
 								kms.getUri(), kms.getKurentoClient().toString());
-						kurentoReconnectTimer.cancelTimer();
+						kms.getKurentoClientReconnectTimer().cancelTimer();
 						kms.setKurentoClientConnected(true);
 						kms.setTimeOfKurentoClientConnection(System.currentTimeMillis());
 
@@ -258,9 +270,10 @@ public abstract class KmsManager {
 
 						kms.setTimeOfKurentoClientDisconnection(0);
 					}
-				}, () -> intervalWaitMs); // Try 2 times per seconds
+				}, () -> Long.valueOf(intervalWaitMs)); // Try 2 times per seconds
 
-				kurentoReconnectTimer.updateTimer();
+				kms.setKurentoClientReconnectTimer(kurentoClientReconnectTimer);
+				kurentoClientReconnectTimer.updateTimer();
 			}
 
 			@Override
@@ -316,15 +329,15 @@ public abstract class KmsManager {
 	public void close() {
 		log.info("Closing all KurentoClients");
 		this.kmss.values().forEach(kms -> {
+			if (kms.getKurentoClientReconnectTimer() != null) {
+				kms.getKurentoClientReconnectTimer().cancelTimer();
+			}
 			kms.getKurentoClient().destroy();
 		});
-		if (kurentoReconnectTimer != null) {
-			kurentoReconnectTimer.cancelTimer();
-		}
 	}
 
 	public static String generateKmsId() {
-		return IdentifierPrefixes.KMS_ID + RandomStringUtils.randomAlphabetic(1).toUpperCase()
+		return IdentifierPrefixes.MEDIA_ID + RandomStringUtils.randomAlphabetic(1).toUpperCase()
 				+ RandomStringUtils.randomAlphanumeric(7);
 	}
 

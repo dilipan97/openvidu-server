@@ -17,9 +17,9 @@
 
 package io.openvidu.server.core;
 
-import io.openvidu.server.utils.ServerProperties;
 import org.apache.commons.lang3.RandomStringUtils;
 
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 import io.openvidu.java.client.ConnectionProperties;
@@ -29,12 +29,24 @@ import io.openvidu.java.client.OpenViduRole;
 import io.openvidu.server.core.Participant.ParticipantStatus;
 import io.openvidu.server.coturn.TurnCredentials;
 
+/*
+*  Added - dilipan@datakaveri.org
+*  Imports all the RTSP server functionality from server properties
+*  Import
+*/
+import io.openvidu.server.utils.ServerProperties;
+
 public class Token {
 
 	private String token;
 	private String sessionId;
 	private Long createdAt;
 	private ConnectionProperties connectionProperties;
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Contains properties for RTSP server.
+	*  Variable declaration
+	*/
 	private ServerProperties serverProperties;
 	private TurnCredentials turnCredentials;
 
@@ -50,6 +62,11 @@ public class Token {
 		this.turnCredentials = turnCredentials;
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Initialize Token and properties
+	*  Function
+	*/
 	public Token(String token, String sessionId, ServerProperties serverProperties) {
 		this.token = token;
 		this.sessionId = sessionId;
@@ -73,9 +90,19 @@ public class Token {
 		return this.createdAt;
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Checks connection properties is NULL
+	*  Function 
+	*/
 	public boolean isConnectionPropertiesNull() { return this.connectionProperties == null; }
 
 	public String getServerMetadata() {
+		/*
+		*  Added - dilipan@datakaveri.org
+		*  Checks connection properties is NULL
+		*  If condition 
+		*/
 		if(isConnectionPropertiesNull()) {
 			return "";
 		}
@@ -83,6 +110,11 @@ public class Token {
 	}
 
 	public Boolean record() {
+		/*
+		*  Added - dilipan@datakaveri.org
+		*  Checks connection properties is NULL
+		*  If condition 
+		*/
 		if(isConnectionPropertiesNull()) {
 			return false;
 		}
@@ -97,6 +129,11 @@ public class Token {
 	}
 
 	public OpenViduRole getRole() {
+		/*
+		*  Added - dilipan@datakaveri.org
+		*  Checks connection properties is NULL
+		*  If condition 
+		*/
 		if(isConnectionPropertiesNull()) {
 			return OpenViduRole.PUBLISHER;
 		}
@@ -111,6 +148,11 @@ public class Token {
 	}
 
 	public KurentoOptions getKurentoOptions() {
+		/*
+		*  Added - dilipan@datakaveri.org
+		*  Checks connection properties is NULL
+		*  If condition 
+		*/
 		if(isConnectionPropertiesNull()) {
 			return null;
 		}
@@ -165,7 +207,11 @@ public class Token {
 		json.addProperty("sessionId", this.sessionId);
 		json.addProperty("createdAt", this.createdAt);
 
-		// Add all Properties
+		/*
+		*  Added - dilipan@datakaveri.org
+		*  get RTSP server properties 
+		*  If condition 
+		*/
 		JsonObject propertiesJson;
 
 		if(this.isConnectionPropertiesNull()) {
@@ -191,14 +237,27 @@ public class Token {
 	protected JsonObject getConnectionPropertiesWithFinalJsonFormat() {
 		JsonObject json = this.connectionProperties.toJson(this.sessionId);
 		json.remove("session");
-		json.add("serverData", json.get("data"));
+		if (json.has("data") && !json.get("data").isJsonNull()) {
+			json.addProperty("serverData", json.get("data").getAsString());
+		} else {
+			json.add("serverData", JsonNull.INSTANCE);
+		}
 		json.remove("data");
 		return json;
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Get Server properies data in JSON Format to send in response
+	*  Function
+	*/
 	protected JsonObject getServerPropertiesWithFinalJsonFormat() {
 		JsonObject json = this.serverProperties.toJson(this.sessionId);
-		json.add("serverData", json.get("data"));
+		if (json.has("data") && !json.get("data").isJsonNull()) {
+			json.addProperty("serverData", json.get("data").getAsString());
+		} else {
+			json.add("serverData", JsonNull.INSTANCE);
+		}
 		return json;
 	}
 

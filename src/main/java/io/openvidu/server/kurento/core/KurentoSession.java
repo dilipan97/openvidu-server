@@ -31,6 +31,8 @@ import org.kurento.client.MediaPipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonObject;
+
 import io.openvidu.client.OpenViduException;
 import io.openvidu.client.OpenViduException.Code;
 import io.openvidu.client.internal.ProtocolElements;
@@ -164,8 +166,8 @@ public class KurentoSession extends Session {
 				candidate);
 	}
 
-	public void sendMediaError(String participantId, String description) {
-		this.kurentoSessionHandler.onMediaElementError(sessionId, participantId, description);
+	public void sendMediaError(String connectionId, String description) {
+		this.kurentoSessionHandler.onMediaElementError(sessionId, connectionId, description);
 	}
 
 	private void removeParticipant(Participant participant, EndReason reason) {
@@ -332,6 +334,21 @@ public class KurentoSession extends Session {
 				log.error("Error waiting to new MediaPipeline on KurentoSession restart: {}", e.getMessage());
 			}
 		});
+	}
+
+	@Override
+	public JsonObject toJson(boolean withPendingConnections, boolean withWebrtcStats) {
+		JsonObject json = super.toJson(withPendingConnections, withWebrtcStats);
+		if (this.kms != null && this.kurentoSessionHandler.addMediaNodeInfoToSessionEntity()) {
+			json.addProperty("mediaNodeId", kms.getId());
+		}
+		return json;
+	}
+
+	public int getNumberOfWebrtcConnections() {
+		return this.getActivePublishers() + this.participants.values().stream()
+				.filter(p -> !ProtocolElements.RECORDER_PARTICIPANT_PUBLICID.equals(p.getParticipantPublicId()))
+				.mapToInt(p -> ((KurentoParticipant) p).getSubscribers().size()).reduce(0, Integer::sum);
 	}
 
 }

@@ -24,13 +24,16 @@ if [[ -z "${COMPOSED_QUICK_START_ACTION}" ]]; then
         export HEIGHT="$(cut -d'x' -f2 <<< $RESOLUTION)"
         export RECORDING_MODE=${RECORDING_MODE}
 
-        pulseaudio -D
+        # Cleanup to be "stateless" on startup, otherwise pulseaudio daemon can't start
+        rm -rf /var/run/pulse /var/lib/pulse /root/.config/pulse
+        # Run pulseaudio
+        pulseaudio -D --system --disallow-exit --disallow-module-loading
 
         ### Start Chrome in headless mode with xvfb, using the display num previously obtained ###
 
         touch xvfb.log
         chmod 777 xvfb.log
-        xvfb-run --auto-servernum --server-args="-ac -screen 0 ${RESOLUTION}x24 -noreset" google-chrome --kiosk --start-maximized --test-type --no-sandbox --disable-infobars --disable-gpu --disable-popup-blocking --window-size=$WIDTH,$HEIGHT --window-position=0,0 --no-first-run --ignore-certificate-errors --disable-dev-shm-usage --autoplay-policy=no-user-gesture-required --enable-logging --v=1 $DEBUG_CHROME_FLAGS $URL &> xvfb.log &
+        xvfb-run-safe --server-args="-ac -screen 0 ${RESOLUTION}x24 -noreset" google-chrome --kiosk --start-maximized --test-type --no-sandbox --disable-infobars --disable-gpu --disable-popup-blocking --window-size=$WIDTH,$HEIGHT --window-position=0,0 --no-first-run --ignore-certificate-errors --disable-dev-shm-usage --autoplay-policy=no-user-gesture-required --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' $DEBUG_CHROME_FLAGS $URL &> xvfb.log &
         chmod 777 /recordings
 
         until pids=$(pidof Xvfb)

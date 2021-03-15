@@ -1,19 +1,19 @@
 /*
-* (C) Copyright 2017-2020 OpenVidu (https://openvidu.io)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*/
+ * (C) Copyright 2017-2020 OpenVidu (https://openvidu.io)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 
 package io.openvidu.server.rest;
 
@@ -26,9 +26,14 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/*
+*  Added - dilipan@datakaveri.org
+*  Imported kurento filter and server properties for RTSP server
+*  Import statement
+*/
 import io.openvidu.server.kurento.endpoint.KurentoFilter;
 import io.openvidu.server.utils.ServerProperties;
-import org.apache.catalina.Server;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,8 +137,8 @@ public class SessionRestController {
 
 	@RequestMapping(value = "/sessions/{sessionId}", method = RequestMethod.GET)
 	public ResponseEntity<?> getSession(@PathVariable("sessionId") String sessionId,
-										@RequestParam(value = "pendingConnections", defaultValue = "false", required = false) boolean pendingConnections,
-										@RequestParam(value = "webRtcStats", defaultValue = "false", required = false) boolean webRtcStats) {
+			@RequestParam(value = "pendingConnections", defaultValue = "false", required = false) boolean pendingConnections,
+			@RequestParam(value = "webRtcStats", defaultValue = "false", required = false) boolean webRtcStats) {
 
 		log.info("REST API: GET {}/sessions/{}", RequestMappings.API, sessionId);
 
@@ -216,7 +221,7 @@ public class SessionRestController {
 
 	@RequestMapping(value = "/sessions/{sessionId}/connection", method = RequestMethod.POST)
 	public ResponseEntity<?> initializeConnection(@PathVariable("sessionId") String sessionId,
-												  @RequestBody Map<?, ?> params) {
+			@RequestBody Map<?, ?> params) {
 
 		log.info("REST API: POST {} {}", RequestMappings.API + "/sessions/" + sessionId + "/connection",
 				params.toString());
@@ -227,6 +232,13 @@ public class SessionRestController {
 		}
 
 		ConnectionProperties connectionProperties;
+
+		/*
+		*  Modified - dilipan@datakaveri.org
+		*  Create RTSP server connection when port is specified
+		*  If else condition
+		*/
+
 		ServerProperties serverProperties;
 
 		if(params.containsKey("port") && params.get("port") != null) {
@@ -260,7 +272,7 @@ public class SessionRestController {
 
 	@RequestMapping(value = "/sessions/{sessionId}/connection/{connectionId}", method = RequestMethod.GET)
 	public ResponseEntity<?> getConnection(@PathVariable("sessionId") String sessionId,
-										   @PathVariable("connectionId") String connectionId) {
+			@PathVariable("connectionId") String connectionId) {
 
 		log.info("REST API: GET {}/sessions/{}/connection/{}", RequestMappings.API, sessionId, connectionId);
 
@@ -285,8 +297,8 @@ public class SessionRestController {
 
 	@RequestMapping(value = "/sessions/{sessionId}/connection", method = RequestMethod.GET)
 	public ResponseEntity<?> listConnections(@PathVariable("sessionId") String sessionId,
-											 @RequestParam(value = "pendingConnections", defaultValue = "true", required = false) boolean pendingConnections,
-											 @RequestParam(value = "webRtcStats", defaultValue = "false", required = false) boolean webRtcStats) {
+			@RequestParam(value = "pendingConnections", defaultValue = "true", required = false) boolean pendingConnections,
+			@RequestParam(value = "webRtcStats", defaultValue = "false", required = false) boolean webRtcStats) {
 
 		log.info("REST API: GET {}/sessions/{}/connection", RequestMappings.API, sessionId);
 
@@ -305,7 +317,7 @@ public class SessionRestController {
 
 	@RequestMapping(value = "/sessions/{sessionId}/connection/{connectionId}", method = RequestMethod.DELETE)
 	public ResponseEntity<?> closeConnection(@PathVariable("sessionId") String sessionId,
-											 @PathVariable("connectionId") String participantPublicId) {
+			@PathVariable("connectionId") String participantPublicId) {
 
 		log.info("REST API: DELETE {}/sessions/{}/connection/{}", RequestMappings.API, sessionId, participantPublicId);
 
@@ -394,7 +406,7 @@ public class SessionRestController {
 
 		try {
 			Recording startedRecording = this.recordingManager.startRecording(session, recordingProperties);
-			return new ResponseEntity<>(startedRecording.toJson().toString(), RestUtils.getResponseHeaders(),
+			return new ResponseEntity<>(startedRecording.toJson(false).toString(), RestUtils.getResponseHeaders(),
 					HttpStatus.OK);
 		} catch (OpenViduException e) {
 			HttpStatus status = e.getCodeValue() == Code.MEDIA_NODE_STATUS_WRONG.getValue()
@@ -448,7 +460,7 @@ public class SessionRestController {
 					session.getParticipantByPublicId(ProtocolElements.RECORDER_PARTICIPANT_PUBLICID), null, null, null);
 		}
 
-		return new ResponseEntity<>(stoppedRecording.toJson().toString(), RestUtils.getResponseHeaders(),
+		return new ResponseEntity<>(stoppedRecording.toJson(false).toString(), RestUtils.getResponseHeaders(),
 				HttpStatus.OK);
 	}
 
@@ -468,7 +480,8 @@ public class SessionRestController {
 					&& recordingManager.getStartingRecording(recording.getId()) != null) {
 				recording.setStatus(io.openvidu.java.client.Recording.Status.starting);
 			}
-			return new ResponseEntity<>(recording.toJson().toString(), RestUtils.getResponseHeaders(), HttpStatus.OK);
+			return new ResponseEntity<>(recording.toJson(false).toString(), RestUtils.getResponseHeaders(),
+					HttpStatus.OK);
 		} catch (Exception e) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -492,7 +505,7 @@ public class SessionRestController {
 					&& recordingManager.getStartingRecording(rec.getId()) != null) {
 				rec.setStatus(io.openvidu.java.client.Recording.Status.starting);
 			}
-			jsonArray.add(rec.toJson());
+			jsonArray.add(rec.toJson(false));
 		});
 		json.addProperty("count", recordings.size());
 		json.add("items", jsonArray);
@@ -564,7 +577,7 @@ public class SessionRestController {
 
 	@RequestMapping(value = "/sessions/{sessionId}/stream/{streamId}", method = RequestMethod.DELETE)
 	public ResponseEntity<?> unpublishStream(@PathVariable("sessionId") String sessionId,
-											 @PathVariable("streamId") String streamId) {
+			@PathVariable("streamId") String streamId) {
 
 		log.info("REST API: DELETE {}/sessions/{}/stream/{}", RequestMappings.API, sessionId, streamId);
 
@@ -655,7 +668,7 @@ public class SessionRestController {
 		}
 
 		try {
-			sessionManager.sendMessage(completeMessage.toString(), sessionId);
+			sessionManager.sendMessage(completeMessage.toString(), session);
 		} catch (OpenViduException e) {
 			return this.generateErrorResponse("\"to\" array has no valid connection identifiers", "/signal",
 					HttpStatus.NOT_ACCEPTABLE);
@@ -703,11 +716,16 @@ public class SessionRestController {
 		Integer frameRate = null;
 		String videoDimensions = null;
 
+		/*
+		*  Added/Modified - dilipan@datakaveri.org
+		*  Create a kurento filter for ip cameras
+		*  Values modified
+		*/
 		JsonObject options = new JsonObject();
 		options.addProperty("command", "videoflip method=vertical-flip" );
 		KurentoFilter kurentoFilter = new KurentoFilter("GStreamerFilter", options);
 
-		KurentoMediaOptions mediaOptions = new KurentoMediaOptions(true, null, hasAudio, hasVideo, audioActive,
+		KurentoMediaOptions mediaOptions = new KurentoMediaOptions(null, hasAudio, hasVideo, audioActive,
 				videoActive, typeOfVideo, frameRate, videoDimensions, kurentoFilter, false, connectionProperties.getRtspUri(),
 				connectionProperties.adaptativeBitrate(), connectionProperties.onlyPlayWithSubscribers(),
 				connectionProperties.getNetworkCache());
@@ -735,6 +753,11 @@ public class SessionRestController {
 		}
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Create new RTSP server connection and publish the server
+	*  Function
+	*/
 	protected ResponseEntity<?> newServerConnection(Session session, ServerProperties serverProperties) {
 
 		final String REQUEST_PATH = "/sessions/" + session.getSessionId() + "/connection";
@@ -955,6 +978,11 @@ public class SessionRestController {
 			onlyPlayWithSubscribers = onlyPlayWithSubscribers != null ? onlyPlayWithSubscribers : true;
 			networkCache = networkCache != null ? networkCache : 2000;
 
+			/*
+			*  Added - dilipan@datakaveri.org
+			*  Added kurento options for IP camera to support kurento filters
+			*  If else statement
+			*/
 			JsonObject kurentoOptionsJson = null;
 			if (params.get("kurentoOptions") != null) {
 				try {
@@ -1004,6 +1032,11 @@ public class SessionRestController {
 		return builder;
 	}
 
+	/*
+	*  Added - dilipan@datakaveri.org
+	*  Get all the RTSP server properties from the params
+	*  Function 
+	*/
 	protected ServerProperties.Builder getServerPropertiesFromParams(Map<?, ?> params) throws Exception {
 
 		ServerProperties.Builder builder = new ServerProperties.Builder();
@@ -1109,8 +1142,8 @@ public class SessionRestController {
 				finalOutputMode == null ? session.getSessionProperties().defaultOutputMode() : finalOutputMode);
 		if (RecordingUtils.IS_COMPOSED(finalOutputMode)) {
 			builder.resolution(resolution != null ? resolution : "1920x1080"); // resolution == null ?
-			// sessionProperties.defaultRecordingResolution)
-			// : resolution));
+																				// sessionProperties.defaultRecordingResolution)
+																				// : resolution));
 			builder.recordingLayout(recordingLayout == null ? session.getSessionProperties().defaultRecordingLayout()
 					: recordingLayout);
 			if (RecordingLayout.CUSTOM.equals(recordingLayout)) {
@@ -1148,6 +1181,7 @@ public class SessionRestController {
 		responseJson.addProperty("error", status.getReasonPhrase());
 		responseJson.addProperty("message", errorMessage);
 		responseJson.addProperty("path", RequestMappings.API + path);
+		log.warn("REST API error response to path {} ({}): {}", path, status.value(), errorMessage);
 		return new ResponseEntity<>(responseJson.toString(), RestUtils.getResponseHeaders(), status);
 	}
 
