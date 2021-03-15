@@ -8,7 +8,7 @@ git init
 git add .
 git commit -m "latest update"
 git remote add origin https://github.com/dilipan97/openvidu-server.git
-git checkout openvidu-server-2.17.0
+git checkout -b openvidu-server-2.17.0
 git push origin openvidu-server-2.17.0
 
 -> change directory to openvidu-server that need to be upgraded
